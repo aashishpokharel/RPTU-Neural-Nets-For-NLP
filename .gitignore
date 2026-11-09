@@ -1,0 +1,11 @@
+# written by run_word2vec.py
+outputs/
+
+# python
+__pycache__/
+*.py[cod]
+.venv/
+.DS_Store
+
+# checkpoints (task 8)
+*.pt

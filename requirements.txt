@@ -1,0 +1,6 @@
+# The exercise only needs PyTorch; numpy comes with it.
+# The versions below are what it was tested with (install the newest you can):
+torch>=2.0
+numpy>=1.24
+# only for the PCA figure of task 8 (bonus)
+matplotlib>=3.7

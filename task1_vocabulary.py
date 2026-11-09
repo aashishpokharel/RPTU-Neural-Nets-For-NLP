@@ -52,7 +52,7 @@ def read_tokens(path=CORPUS_PATH, limit=None):
     """
     # raise NotImplementedError("Task 1: read_tokens()")
 
-    with open (CORPUS_PATH,'r') as f:
+    with open(path, 'r', encoding="utf-8") as f:
         data = f.read()
 
     data_lower = data.lower()

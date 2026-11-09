@@ -36,6 +36,8 @@ python3 check_my_code.py            # grade all eight tasks (start here, everyth
 python3 check_my_code.py --task 4   # grade one task
 python3 task4_softmax.py            # same thing, from inside the file you are editing
 python3 run_word2vec.py --plot      # train on 20k tokens and write the figure
+python3 train.py --plot             # the same training, but keeps the artefacts
+python3 inference.py similar king   # query the vectors train.py wrote
 ```
 
 `run_word2vec.py` needs tasks 1-7; once they pass it prints something like this:
@@ -75,6 +77,62 @@ whole 59k-token corpus and takes about three times longer).  See
 `python3 run_word2vec.py --help` for `--dim`, `--window`, `--epochs`, `--batch-size`,
 `--full`, `--device`, `--seed`, `--compare` and friends.
 
+## Training and inference
+
+`run_word2vec.py` trains and reports in one go; `train.py` and `inference.py` split that
+in two, so the vectors can be trained once and queried many times (and from another
+program):
+
+```bash
+python3 train.py                        # 20k tokens, 5 epochs, a few seconds
+python3 train.py --full --plot          # whole corpus + the PCA figure
+python3 train.py --dim 60 --name d60    # a second artefact set, side by side
+
+python3 inference.py similar king           # 8 nearest neighbours
+python3 inference.py similarity king queen  # cosine similarity of two words
+python3 inference.py analogy man king woman # man -> king :: woman -> ?
+python3 inference.py evaluate               # the analogy report of task 7
+python3 inference.py info                   # hyper-parameters and scores
+python3 inference.py interactive            # a small REPL
+```
+
+`train.py` writes three files into `outputs/` (git-ignored), all sharing the `--name`
+stem:
+
+| file          | what it holds                                               |
+| ------------- | ----------------------------------------------------------- |
+| `<name>.txt`  | the vectors in the word2vec text format of task 8            |
+| `<name>.pt`   | the `state_dict` checkpoint of task 8                        |
+| `<name>.json` | hyper-parameters, vocabulary, per-epoch `J`, analogy scores  |
+
+The JSON exists because a `state_dict` is only a pile of numbers: it holds neither the
+words nor the hyper-parameters, so without it there is no way to say which row is "king".
+With it, `inference.py --from-checkpoint` rebuilds the `nn.Module`; without that flag it
+reads the portable text file.  Both give the same answers, up to the six decimals the text
+format keeps:
+
+```bash
+python3 inference.py similar king                      # reads outputs/word_vectors.txt
+python3 inference.py similar king --from-checkpoint     # rebuilds word_vectors.pt
+python3 inference.py similar king --model outputs/d60   # another artefact set
+```
+
+A word that is not in the vocabulary is reported as such — with spelling suggestions —
+and the exit status is non-zero, so both scripts are safe to call from a Makefile or a
+shell script:
+
+```
+$ python3 inference.py similar kiing
+error: 'kiing' is not in the vocabulary of this model (130 words). Did you mean king, walking, kingdom?
+$ echo $?
+1
+```
+
+Neither script contains any new mathematics: `train.py` is `run_word2vec.py` with the
+artefacts written in one place, and `inference.py` is argument handling around
+`most_similar`, `analogy` and `cosine_similarity` from task 7 and `load_embeddings` /
+`load_checkpoint` from task 8.
+
 ## The files
 
 | file                      | what it holds                                             |
@@ -91,6 +149,8 @@ whole 59k-token corpus and takes about three times longer).  See
 | `task6_training_loop.py`  | the training loop: `DataLoader`, epochs, schedule          |
 | `task7_similarity.py`     | cosine similarity, nearest neighbours, analogies           |
 | `task8_io_and_pca.py`     | bonus: text export, `state_dict` checkpoint, PCA figure    |
+| `train.py`                | train once, write `<name>.{txt,pt,json}` (tasks 1-8)        |
+| `inference.py`            | query them: neighbours, analogies, similarities, REPL       |
 | `check_my_code.py`        | the grader -- runs every check and prints a report         |
 | `grader/`                 | the checks themselves, plus independent reference maths    |
 | `solutions/`              | reference solutions and their own `run_word2vec.py`        |
